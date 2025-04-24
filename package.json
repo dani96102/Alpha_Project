@@ -1,0 +1,31 @@
+{
+    "name": "project-alpha-server",
+    "version": "1.0.0",
+    "description": "Backend for Project Alpha Telegram Mini App Game",
+    "main": "server/server.js",
+    "scripts": {
+      "start": "node server/server.js", // دستور اجرا در هاستینگ
+      "dev": "nodemon server/server.js" // برای توسعه لوکال (اگر nodemon نصب داری)
+    },
+    "keywords": [
+      "telegram",
+      "miniapp",
+      "game",
+      "multiplayer",
+      "socket.io",
+      "phaser",
+      "firebase"
+    ],
+    "author": "Your Name",
+    "license": "ISC",
+    "dependencies": {
+      "cors": "^2.8.5", // برای مدیریت CORS
+      "express": "^4.19.2",
+      "firebase-admin": "^12.1.0", // برای ارتباط با Firebase از بک‌اند
+      "socket.io": "^4.7.5", // برای ارتباط real-time
+      "telegraf": "^4.16.3" // برای ربات تلگرام
+    },
+    "devDependencies": {
+      "nodemon": "^3.1.0" // برای restart خودکار سرور در حالت توسعه
+    }
+  }

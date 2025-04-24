@@ -1,0 +1,23 @@
+{
+    "hosting": {
+      "public": "public", // پوشه‌ای که محتوای استاتیک در آن است
+      "ignore": [
+        "firebase.json",
+        "**/.*", // فایل‌های مخفی
+        "**/node_modules/**" // پوشه node_modules
+      ],
+      "rewrites": [
+        {
+          "source": "**", // همه درخواست‌هایی که فایلی برایشان نیست
+          "destination": "/index.html" // به index.html هدایت شوند (برای Single Page Apps)
+        }
+      ],
+      "headers": [ {
+        "source": "**/*.@(js|css)", // برای کش کردن بهتر فایل‌های استاتیک
+        "headers": [ {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        } ]
+      } ]
+    }
+  }

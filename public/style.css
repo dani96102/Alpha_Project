@@ -1,0 +1,28 @@
+/* public/style.css */
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* جلوگیری از اسکرول */
+    background-color: #1c1c1c; /* یک پس‌زمینه تیره */
+    color: #eee;
+    font-family: sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+#game-container {
+    /* ابعاد Canvas توسط Phaser تنظیم می‌شود */
+    /* ممکن است نیاز به تنظیمات بیشتری برای تمام صفحه شدن باشد */
+}
+
+/* استایل‌های دیگر برای UI بازی (مثل امتیاز، دکمه‌ها و...) */
+.hud {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 5px 10px;
+    border-radius: 5px;
+}
