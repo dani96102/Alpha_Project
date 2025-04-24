@@ -1,124 +1,156 @@
-// public/js/main.js
-// فرض می‌کنیم GameScene.js توسط AI تولید شده و export شده است
-import { GameScene } from './GameScene.js';
+// Wait for the DOM and scripts (Phaser, Socket.IO, Telegram) to be ready
+window.addEventListener('load', () => {
+    console.log("Window loaded. Initializing game...");
 
-console.log("Project Alpha: main.js loading...");
+    // --- Configuration ---
+    const SOCKET_SERVER_URL = 'http://localhost:3000'; // IMPORTANT: Replace with your actual Socket.IO server URL
+    const GAME_WIDTH = window.innerWidth; // Use window size for responsiveness
+    const GAME_HEIGHT = window.innerHeight * 0.8; // Adjust height as needed, maybe leave space for other UI
 
-let tg = null;
-let userInfo = null;
-let socket = null;
-
-// --- 1. Initialize Telegram ---
-try {
-    if (window.Telegram && window.Telegram.WebApp) {
-        tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand(); // تمام صفحه کردن مینی‌اپ
-        userInfo = tg.initDataUnsafe?.user;
-        console.log("Telegram WebApp Initialized. User:", userInfo);
-
-        // تنظیم دکمه اصلی تلگرام (اختیاری)
-        tg.MainButton.setText("خروج از بازی");
-        tg.MainButton.show();
-        tg.MainButton.onClick(() => tg.close());
-
-    } else {
-        console.warn("Telegram WebApp API not found. Running in standard browser?");
-        // شاید بخواهید پیامی نمایش دهید یا لاگین جایگزین داشته باشید
-        // alert("Please open this game through the Telegram bot.");
+    // --- Telegram WebApp Initialization ---
+    let tg = null;
+    try {
+        if (window.Telegram && window.Telegram.WebApp) {
+            tg = window.Telegram.WebApp;
+            tg.expand(); // Expand the Mini App view
+            console.log("Telegram WebApp initialized:", tg);
+        } else {
+            console.warn("Telegram WebApp script not loaded or initialized correctly.");
+            // Provide a fallback mechanism or message if running outside Telegram
+            alert("Telegram context not found. Running in limited mode.");
+        }
+    } catch (error) {
+        console.error("Error initializing Telegram WebApp:", error);
+        alert("Failed to initialize Telegram WebApp.");
     }
-} catch (err) {
-    console.error("Error initializing Telegram WebApp:", err);
-    // نمایش خطا به کاربر
-}
 
-// --- 2. Connect to Backend Server via Socket.IO ---
-// آدرس بک‌اند سرور شما (باید از متغیر محیطی خوانده شود یا هاردکد شود - بهتر است از طریق build process تزریق شود)
-// در Vercel/Render/..., process.env در کلاینت در دسترس نیست.
-const BACKEND_URL = "YOUR_DEPLOYED_BACKEND_URL"; // مثل https://your-backend.onrender.com
-// const BACKEND_URL = "http://localhost:3001"; // برای تست لوکال بک‌اند
 
-console.log(`Attempting to connect to Socket.IO server at: ${BACKEND_URL}`);
+    // --- Socket.IO Client Initialization ---
+    let socket = null;
+    try {
+        // Check if io is defined (loaded from the script tag)
+        if (typeof io !== 'undefined') {
+            socket = io(SOCKET_SERVER_URL, {
+                 transports: ['websocket'], // Explicitly use WebSocket if possible
+                 // Add any other necessary Socket.IO options here
+            });
 
-try {
-    socket = io(BACKEND_URL, {
-         transports: ['websocket'], // اولویت با وب‌سوکت
-         reconnectionAttempts: 5, // تعداد تلاش برای اتصال مجدد
-         reconnectionDelay: 1000, // تاخیر بین تلاش‌ها
-     });
+            socket.on('connect', () => {
+                console.log('Connected to Socket.IO server with ID:', socket.id);
+                // Now that we are connected, start the Phaser game
+                initializePhaser();
+            });
 
-    socket.on('connect', () => {
-        console.log(`Socket.IO Connected! ID: ${socket.id}`);
-        // بعد از اتصال موفق، به سرور بگویید که وصل شده اید (همراه با اطلاعات تلگرام)
-        socket.emit('playerJoin', { telegramUser: userInfo });
+            socket.on('connect_error', (err) => {
+                console.error('Socket.IO connection error:', err.message, err.data);
+                // Handle connection errors (e.g., show a message to the user)
+                 alert(`Failed to connect to game server: ${err.message}. Please try again later.`);
+                 // Maybe disable the game area or show an error state
+                 const gameContainer = document.getElementById('phaser-game');
+                 if (gameContainer) {
+                     gameContainer.innerHTML = '<p style="color: red; text-align: center; padding: 20px;">Connection Error. Cannot load game.</p>';
+                 }
+            });
 
-        // --- 3. Initialize Phaser Game (Only AFTER socket connects) ---
-        if (!window.phaserGame) { // فقط یک بار بازی را بسازید
-          initializePhaserGame(socket, tg, userInfo);
+            socket.on('disconnect', (reason) => {
+                console.log('Disconnected from Socket.IO server:', reason);
+                // Handle disconnection (e.g., show a message, try to reconnect)
+                alert("Disconnected from server. Please check your connection.");
+            });
+
+        } else {
+            console.error("Socket.IO client library (io) not found.");
+             alert("Critical error: Cannot load multiplayer features.");
+              const gameContainer = document.getElementById('phaser-game');
+              if (gameContainer) {
+                     gameContainer.innerHTML = '<p style="color: red; text-align: center; padding: 20px;">Error loading multiplayer library.</p>';
+              }
         }
-    });
 
-    socket.on('disconnect', (reason) => {
-        console.warn(`Socket.IO Disconnected. Reason: ${reason}`);
-        // نمایش پیام به کاربر یا تلاش برای اتصال مجدد UI
-        if (window.phaserGame) {
-            // شاید بخواهید بازی را متوقف کنید یا پیامی نشان دهید
-            // window.phaserGame.scene.getScene('GameScene').sys.pause();
+    } catch (error) {
+        console.error("Error initializing Socket.IO:", error);
+         alert("Failed to initialize multiplayer connection.");
+         const gameContainer = document.getElementById('phaser-game');
+         if (gameContainer) {
+             gameContainer.innerHTML = '<p style="color: red; text-align: center; padding: 20px;">Multiplayer Initialization Error.</p>';
+         }
+    }
+
+
+    // --- Phaser Game Initialization ---
+    function initializePhaser() {
+        console.log("Initializing Phaser...");
+        if (typeof Phaser === 'undefined') {
+            console.error("Phaser library not found!");
+             alert("Critical error: Cannot load game engine.");
+              const gameContainer = document.getElementById('phaser-game');
+             if (gameContainer) {
+                 gameContainer.innerHTML = '<p style="color: red; text-align: center; padding: 20px;">Error loading game engine.</p>';
+             }
+            return;
         }
-        // تلاش برای اتصال مجدد به صورت خودکار توسط Socket.IO انجام می‌شود (طبق تنظیمات بالا)
-    });
+         if (!socket || !socket.connected) {
+             console.error("Cannot initialize Phaser: Socket not connected.");
+             return;
+         }
 
-    socket.on('connect_error', (error) => {
-        console.error('Socket.IO Connection Error:', error);
-        displayConnectionError(`Failed to connect to server: ${error.message}. Please try refreshing.`);
-    });
 
-} catch (err) {
-    console.error("Failed to initialize Socket.IO:", err);
-    displayConnectionError("Could not establish connection to the game server.");
-}
+        const config = {
+            type: Phaser.AUTO, // Automatically choose WebGL or Canvas
+            parent: 'phaser-game', // ID of the div container
+            width: GAME_WIDTH,
+            height: GAME_HEIGHT,
+             scale: {
+                 mode: Phaser.Scale.FIT, // Fit the game within the parent container
+                 autoCenter: Phaser.Scale.CENTER_BOTH // Center the game canvas
+             },
+            physics: {
+                default: 'arcade', // Use Arcade Physics engine
+                arcade: {
+                    // debug: true, // Set to true for visual debugging of physics bodies
+                    gravity: { y: 0 } // No gravity needed for top-down view
+                }
+            },
+            scene: [GameScene], // Add the GameScene to the configuration
+            backgroundColor: '#2d2d2d' // A dark background color
+        };
 
-// --- Phaser Initialization Function ---
-function initializePhaserGame(socketInstance, tgInstance, userInstance) {
-    console.log("Initializing Phaser game...");
-    const config = {
-        type: Phaser.AUTO, // اولویت با WebGL، اگر نشد Canvas
-        scale: {
-            mode: Phaser.Scale.RESIZE, // تغییر اندازه خودکار با پنجره
-            parent: 'game-container', // ID المان والد
-            width: '100%',
-            height: '100%'
-        },
-        scene: [GameScene], // لیست صحنه‌های بازی شما
-        // physics: { default: 'arcade', arcade: { debug: false } }, // فیزیک پایه (اختیاری)
-        // pixelArt: true, // اگر گرافیک پیکسلی دارید
-        // antialias: true, // برای گرافیک نرم‌تر
-    };
+        try {
+            const game = new Phaser.Game(config);
+             console.log("Phaser Game instance created:", game);
 
-    window.phaserGame = new Phaser.Game(config);
+            // Pass socket and tg instances to the GameScene using the registry or scene start data
+             // Using registry (accessible in scene via this.registry.get):
+             // game.registry.set('socket', socket);
+             // game.registry.set('tg', tg);
+             // game.scene.start('GameScene'); // Start the scene after setting registry
 
-    // پاس دادن نمونه‌های سوکت و تلگرام به بازی از طریق رجیستری
-    window.phaserGame.registry.set('socket', socketInstance);
-    window.phaserGame.registry.set('tg', tgInstance);
-    window.phaserGame.registry.set('userInfo', userInstance);
+             // Or using scene start data (accessible in scene's init method):
+             game.scene.start('GameScene', { socket: socket, tg: tg });
 
-    console.log("Phaser game instance created.");
-}
+             console.log("GameScene started with socket and tg data.");
 
-// --- Helper to Display Errors ---
-function displayConnectionError(message) {
-  const container = document.getElementById('game-container');
-  if (container) {
-    container.innerHTML = `<div style="color: red; padding: 20px; text-align: center;">${message}</div>`;
-  }
-}
+             // Remove the "Loading game..." message
+             const gameContainer = document.getElementById('phaser-game');
+             const loadingMessage = gameContainer?.querySelector('p');
+             if(loadingMessage) {
+                loadingMessage.remove();
+             }
 
-// اگر اتصال اولیه سوکت برقرار نشد، خطا نمایش دهید
-// (این کد ممکن است قبل از اتمام تلاش‌های اتصال مجدد اجرا شود)
-// setTimeout(() => {
-//     if (!socket || !socket.connected) {
-//         if (!document.querySelector('#game-container div')) { // فقط اگر پیام خطای دیگری نیست
-//              displayConnectionError("Unable to connect to the game server after initial attempts.");
-//         }
-//     }
-// }, 6000); // کمی صبر کنید
+
+        } catch (error) {
+            console.error("Error creating Phaser game instance:", error);
+            alert("Failed to start the game engine.");
+            const gameContainer = document.getElementById('phaser-game');
+             if (gameContainer) {
+                 gameContainer.innerHTML = '<p style="color: red; text-align: center; padding: 20px;">Game Engine Error.</p>';
+             }
+        }
+    }
+
+    // Initial setup check (optional, but good practice)
+    if (typeof Phaser === 'undefined') console.error("Phaser is not defined!");
+    if (typeof io === 'undefined') console.error("Socket.IO (io) is not defined!");
+    if (typeof GameScene === 'undefined') console.error("GameScene is not defined!");
+
+});
