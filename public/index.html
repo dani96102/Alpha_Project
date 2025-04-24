@@ -2,28 +2,59 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <!-- مهم برای نمایش درست در موبایل و جلوگیری از زوم ناخواسته -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Project Alpha</title>
+    <!-- لینک به فایل استایل شما -->
     <link rel="stylesheet" href="style.css">
-    <!-- مهم: استایل برای تمام صفحه کردن Canvas -->
+    <!-- استایل‌های ضروری برای تمام صفحه شدن و موقعیت‌یابی اولیه -->
     <style>
-        body { margin: 0; overflow: hidden; background-color: #222; }
-        canvas { display: block; }
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* جلوگیری از اسکرول */
+            background-color: #1a1a1a; /* رنگ پس زمینه تیره */
+            color: #eee; /* رنگ متن پیش‌فرض (برای پیام‌ها) */
+            font-family: sans-serif; /* فونت خوانا */
+        }
+        canvas {
+            display: block; /* حذف فضای اضافی زیر Canvas */
+        }
+        /* استایل پایه برای المان‌های پیام/خطا (استایل‌های دقیق‌تر در main.js اعمال می‌شود) */
+        #message-overlay, #error-overlay {
+            position: absolute; /* موقعیت شناور */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 85%; /* حداکثر عرض */
+            padding: 10px 15px;
+            border-radius: 5px;
+            z-index: 1001; /* بالاتر از Canvas بازی */
+            text-align: center;
+            font-size: 14px;
+            display: none; /* در ابتدا مخفی */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        #message-overlay { top: 10px; background-color: rgba(173, 216, 230, 0.9); color: #000; } /* آبی روشن */
+        #error-overlay { top: 60px; background-color: rgba(250, 128, 114, 0.9); color: #000; } /* قرمز روشن (سالمون) */
     </style>
-    <!-- Socket.IO Client -->
-    <script src="/socket.io/socket.io.js"></script> <!-- اگر بک‌اند روی همین دامنه است -->
-    <!-- یا از CDN: <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script> -->
-    <!-- Telegram WebApp -->
+
+    <!-- ۱. کتابخانه Socket.IO Client (از CDN) -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <!-- ۲. کتابخانه Telegram WebApp -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Phaser 3 -->
+    <!-- ۳. کتابخانه Phaser 3 (از CDN) -->
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
 
 </head>
 <body>
     <!-- المانی که بازی Phaser در آن رندر می‌شود -->
-    <div id="game-container"></div>
+    <div id="game-container" style="width: 100vw; height: 100vh;"></div>
 
-    <!-- نقطه ورود اصلی جاوااسکریپت -->
+    <!-- المان‌های خالی برای نمایش پیام و خطا -->
+    <div id="message-overlay"></div>
+    <div id="error-overlay"></div>
+
+    <!-- ۴. اسکریپت اصلی شما (حتما در انتها و از نوع module) -->
     <script type="module" src="js/main.js"></script>
 </body>
 </html>
