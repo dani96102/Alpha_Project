@@ -93,3 +93,24 @@ module.exports = app;
 
 // کد server.listen() حذف شد چون Vercel خودش مدیریت می‌کند.
 // console.log های مربوط به listen و تنظیم وبهوک خودکار هم باید حذف شوند.
+// server/server.js
+// ...
+app.post(WEBHOOK_PATH, async (req, res) => {
+    console.log(`>>> Webhook received at ${new Date().toISOString()}`); // زمان دریافت
+    console.log(`>>> Request Body:`, JSON.stringify(req.body, null, 2)); // محتوای آپدیت تلگرام
+    try {
+        console.log(`>>> Calling bot.handleUpdate...`);
+        await bot.handleUpdate(req.body, res);
+        console.log(`>>> bot.handleUpdate finished.`);
+        if (!res.headersSent) {
+             console.log(`>>> Ensuring response is sent (Status 200).`);
+             res.sendStatus(200); // یا res.send({});
+        }
+    } catch (error) {
+        console.error('>>> ERROR processing webhook:', error); // لاگ کردن خطای کامل
+        if (!res.headersSent) {
+            res.sendStatus(500);
+        }
+    }
+});
+// ...
