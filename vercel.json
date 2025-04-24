@@ -2,14 +2,11 @@
     "version": 2,
     "builds": [
       {
-        "src": "server/server.js",  // به Vercel می‌گه نقطه ورود اصلی بک‌اند کجاست
-        "use": "@vercel/node"       // به Vercel می‌گه از رانتایم Node.js استفاده کن
+        "src": "server/server.js",
+        "use": "@vercel/node"
       }
     ],
     "routes": [
-      // این قانون می‌گه تمام درخواست‌ها (*) رو بگیر
-      // و به تابع Serverless که از server/server.js ساخته شده بفرست.
-      // خود Express داخل server.js مسئول مسیریابی داخلی (مثل /api/...) خواهد بود.
       {
         "src": "/(.*)",
         "dest": "/server/server.js"
